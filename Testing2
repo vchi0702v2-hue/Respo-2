@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proactive Sourcing — Executive Report FY26</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --red:#E60012;--red-soft:rgba(230,0,18,.06);
+  --red-dark:#A30020;--gray-lt:#CCCCCC;--gray-md:#808080;--charcoal:#363636;--pink:#F0ADAD;
+  --ink:#1a1a2e;--ink2:#2d2d44;--ink3:#4a4a64;
+  --muted:#8b8ba0;--light:#c4c4d4;--gray:#bbb;
+  --bg:#f7f7fa;--card:#ffffff;--border:#eaeaf0;--border2:#f0f0f5;
+  --radius:16px;--radius-sm:10px;
+}
+
+body{
+  font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===================== HEADER ===================== */
+.masthead{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  padding:0 48px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
+.masthead-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:1440px;margin:0 auto;
+  height:64px;
+}
+.masthead-left{display:flex;align-items:center;gap:16px}
+.logo{width:30px;height:28px;flex-shrink:0}
+.masthead-title{
+  font-family:'Playfair Display',serif;
+  font-size:18px;font-weight:700;letter-spacing:-.4px;
+  color:var(--ink);
+}
+.masthead-sub{font-size:11px;color:var(--muted);font-weight:400;margin-top:0}
+.masthead-right{display:flex;align-items:center;gap:12px}
+.meta-pill{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:20px;padding:5px 14px;
+  font-size:11px;color:var(--muted);font-weight:500;
+  cursor:pointer;transition:all .25s;user-select:none;
+  position:relative;
+}
+.meta-pill strong{color:var(--ink);font-weight:600}
+.meta-pill .okr-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  margin-right:6px;vertical-align:middle;transition:background .3s;
+}
+.okr-green .okr-dot{background:#22c55e}
+.okr-green{border-color:#22c55e;background:rgba(34,197,94,.06)}
+.okr-amber .okr-dot{background:#f59e0b}
+.okr-amber{border-color:#f59e0b;background:rgba(245,158,11,.06)}
+.okr-red .okr-dot{background:var(--red)}
+.okr-red{border-color:var(--red);background:var(--red-soft)}
+
+.okr-menu{
+  position:absolute;top:calc(100% + 8px);left:0;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+  padding:6px;min-width:160px;z-index:300;
+  opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:all .2s;
+}
+.okr-menu.open{opacity:1;visibility:visible;transform:translateY(0)}
+.okr-opt{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:8px;cursor:pointer;
+  font-size:11px;font-weight:500;color:var(--ink3);
+  transition:background .15s;
+}
+.okr-opt:hover{background:var(--bg)}
+.okr-opt .okr-dot{margin-right:0}
+.okr-opt.selected{font-weight:700;color:var(--ink)}
+.upload-trigger{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;
+  border:1.5px dashed var(--border);
+  font-size:11px;color:var(--muted);font-weight:500;
+  cursor:pointer;transition:all .25s;background:#fff;
+}
+.upload-trigger:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.upload-trigger.loaded{border-color:var(--charcoal);color:var(--charcoal);border-style:solid}
+.upload-trigger input{display:none}
+.upload-trigger svg{width:14px;height:14px}
+.last-saved{
+  font-size:10px;color:var(--muted);font-weight:400;
+  display:flex;align-items:center;gap:4px;
+}
+.last-saved .dot{width:6px;height:6px;border-radius:50%;background:var(--charcoal);display:inline-block}
+
+/* ===================== FILTER STRIP ===================== */
+.filter-strip{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 48px;overflow:hidden;
+  max-height:0;transition:max-height .35s cubic-bezier(.4,0,.2,1);
+}
+.filter-strip.open{max-height:200px}
+.filter-strip-inner{
+  max-width:1440px;margin:0 auto;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:12px 0;
+}
+.filter-toggle{
+  display:flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:20px;
+  border:1px solid var(--border);background:#fff;
+  font-size:11px;color:var(--ink3);font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all .2s;
+}
+.filter-toggle:hover{border-color:var(--ink3)}
+.filter-toggle.has-filters{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.filter-toggle svg{width:12px;height:12px}
+.fdiv{width:1px;height:20px;background:var(--border);margin:0 4px}
+.flbl{
+  font-size:8px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--light);margin-right:2px;
+}
+.fb{
+  background:#fff;border:1px solid var(--border);
+  border-radius:20px;padding:5px 12px;
+  font-size:10px;font-weight:500;color:var(--ink3);
+  cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;
+}
+.fb:hover{border-color:var(--ink3);color:var(--ink)}
+.fb.act{color:#fff}
+.fb.act::before{content:'\2713\00a0';font-size:8px;font-weight:700}
+.fb-src.act{background:var(--red);border-color:var(--red)}
+.fb-st.act{background:var(--red-dark);border-color:var(--red-dark)}
+.fb-tp.act{background:var(--gray-md);border-color:var(--gray-md)}
+.fb-co.act{background:var(--charcoal);border-color:var(--charcoal)}
+.fb-rs.act{background:var(--red-dark);border-color:var(--red-dark)}
+.fb-mo.act{background:var(--gray-md);border-color:var(--gray-md)}
+
+/* Active Chips Bar */
+.chips-bar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 48px;display:none;
+}
+.chips-bar.vis{display:block}
+.chips-inner{
+  max-width:1440px;margin:0 auto;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 0;
+}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--red-soft);border:1px solid rgba(230,0,18,.2);
+  border-radius:16px;padding:3px 8px 3px 10px;
+  font-size:10px;font-weight:500;color:var(--ink);
+  animation:chipIn .2s ease;
+}
+.chip-dim{font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600}
+@keyframes chipIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.chip-x{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:rgba(230,0,18,.12);color:var(--red);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:10px;line-height:1;font-family:inherit;transition:all .15s;
+}
+.chip-x:hover{background:var(--red);color:#fff}
+.chips-count{font-size:10px;color:var(--muted);font-weight:500}
+.chips-clear{
+  margin-left:auto;border:1px solid var(--border);border-radius:16px;
+  padding:3px 12px;font-size:10px;font-weight:600;
+  color:var(--muted);background:#fff;cursor:pointer;font-family:inherit;
+  transition:all .15s;
+}
+.chips-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* ===================== CONTAINER ===================== */
+.container{max-width:1440px;margin:0 auto;padding:28px 48px 60px}
+
+/* ===================== KPI SECTION ===================== */
+.kpi-section{display:flex;gap:20px;margin-bottom:28px;align-items:stretch;overflow:visible}
+.kpi-group{flex:1 1 0;min-width:0;display:flex;flex-direction:column;overflow:visible}
+.kpi-group-wide{flex:2 1 0;min-width:0;display:flex;flex-direction:column;overflow:visible}
+
+.kpi-topic{
+  font-family:'DM Sans',sans-serif;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;
+  padding:8px 0;text-align:center;
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  position:relative;z-index:2;
+  overflow:visible;
+}
+.kpi-topic-blue{background:var(--red);color:#fff}
+.kpi-topic-purple{background:var(--red-dark);color:#fff}
+.kpi-topic-green{background:var(--charcoal);color:#fff}
+.kpi-topic-amber{background:var(--gray-md);color:#fff}
+
+/* Info tooltip */
+.info-wrap{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:inline-flex}
+.info-i{
+  width:16px;height:16px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:600;font-style:normal;
+  font-family:'DM Sans',sans-serif;
+  color:rgba(255,255,255,.6);border:1.5px solid rgba(255,255,255,.35);
+  cursor:help;transition:all .2s;
+  line-height:1;padding:0 0 0 2.5px;text-indent:0;
+}
+.info-i:hover{color:#fff;border-color:#fff;background:rgba(255,255,255,.15)}
+.info-tip{
+  position:absolute;top:calc(100% + 10px);right:0;transform:none;
+  width:280px;padding:14px 16px;
+  background:#fff;color:var(--ink);
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.12);
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;
+  line-height:1.55;letter-spacing:0;text-transform:none;
+  opacity:0;visibility:hidden;
+  transition:opacity .2s,visibility .2s,transform .2s;
+  transform:translateY(-4px);
+  z-index:200;pointer-events:none;
+}
+.info-tip::before{
+  content:'';position:absolute;top:-6px;right:14px;
+  width:12px;height:12px;background:#fff;
+  border-left:1px solid var(--border);border-top:1px solid var(--border);
+  transform:rotate(45deg);
+}
+.info-wrap:hover .info-tip{opacity:1;visibility:visible;transform:translateY(0)}
+
+.kpi-body{
+  background:var(--card);
+  border:1px solid var(--border);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);
+  flex:1;display:flex;flex-direction:column;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+  min-height:130px;
+}
+.kpi-body-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+}
+.kpi-body-grid .kpi-tile{border-right:1px solid var(--border2)}
+.kpi-body-grid .kpi-tile:last-child{border-right:none}
+
+.kpi-tile{
+  padding:20px 24px 24px;text-align:center;cursor:pointer;
+  transition:background .2s;flex:1;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;
+}
+.kpi-tile:hover{background:var(--bg)}
+
+.kpi-number{
+  font-family:'Playfair Display',serif;
+  font-size:44px;font-weight:800;letter-spacing:-2px;
+  line-height:1;margin-bottom:20px;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.kpi-tile:hover .kpi-number{transform:scale(1.05)}
+.kpi-label{
+  font-size:9px;font-weight:600;text-transform:uppercase;
+  letter-spacing:1px;color:var(--muted);line-height:1.5;
+  margin-top:-4px;white-space:pre-line;
+}
+.kpi-covered{
+  font-size:9px;font-weight:500;color:var(--light);
+  margin-top:8px;letter-spacing:0;text-transform:none;
+}
+.kpi-sub{font-size:10px;color:var(--light);margin-top:3px;font-weight:400}
+.num-blue{color:var(--red)}.num-purple{color:var(--red-dark)}
+.num-teal{color:var(--charcoal)}.num-green{color:var(--charcoal)}.num-amber{color:var(--gray-md)}
+
+/* ===================== GRID ===================== */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-full{grid-column:1/-1}
+
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.03);
+  transition:box-shadow .25s,border-color .25s;
+}
+.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:#ddd}
+
+.card-head{
+  padding:20px 24px 14px;
+  display:flex;align-items:baseline;justify-content:space-between;
+}
+.card-title{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--ink);
+}
+.card-tag{
+  font-size:8px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--light);
+  padding:3px 8px;border-radius:6px;background:var(--bg);
+}
+.card-body{padding:0 24px 24px}
+
+.chart-area{position:relative;width:100%;height:260px}
+.chart-area-sm{position:relative;width:100%;height:220px}
+.chart-area-trend{position:relative;width:100%;height:180px}
+
+/* ===================== TABLE ===================== */
+.tbl{width:100%;border-collapse:separate;border-spacing:0}
+.tbl th{
+  text-align:left;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--light);padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+  transition:color .15s;position:sticky;top:0;background:#fff;z-index:1;
+}
+.tbl th:hover{color:var(--ink)}
+.tbl th .sa{display:inline-block;margin-left:3px;font-size:8px;opacity:.35;transition:opacity .15s}
+.tbl th.sasc .sa,.tbl th.sdsc .sa{opacity:1;color:var(--red)}
+.tbl th.sasc .sa::after{content:'\25B2'}.tbl th.sdsc .sa::after{content:'\25BC'}
+.tbl th:not(.sasc):not(.sdsc) .sa::after{content:'\25B4\25BE';font-size:6px;letter-spacing:-2px}
+.tbl td{
+  padding:10px 12px;font-size:11px;color:var(--ink3);
+  border-bottom:1px solid var(--border2);
+  transition:background .12s;
+}
+.tbl tbody tr{cursor:default}
+.tbl tbody tr:hover td{background:rgba(230,0,18,.02)}
+.tbl .t-title{color:var(--ink);font-weight:500}
+.sb{
+  display:inline-block;padding:3px 10px;border-radius:20px;
+  font-size:9px;font-weight:600;white-space:nowrap;
+}
+.sb-f{background:rgba(230,0,18,.08);color:var(--red)}
+.sb-nl{background:rgba(163,0,32,.06);color:var(--red-dark)}
+.sb-l{background:rgba(128,128,128,.1);color:var(--gray-md)}
+.sb-c{background:rgba(0,0,0,.04);color:var(--gray-lt)}
+
+/* ===================== HORIZONTAL BARS ===================== */
+.hbar{margin-bottom:14px}
+.hbar-label{font-size:11px;color:var(--ink3);margin-bottom:4px;display:flex;justify-content:space-between;font-weight:500}
+.hbar-track{height:28px;background:var(--bg);border-radius:8px;overflow:hidden}
+.hbar-fill{
+  height:100%;border-radius:8px;
+  transition:width .7s cubic-bezier(.22,1,.36,1);
+  display:flex;align-items:center;padding-left:10px;
+  font-size:10px;font-weight:700;color:#fff;min-width:28px;
+}
+.empty{text-align:center;padding:40px 20px;color:var(--light);font-size:12px}
+
+/* ===================== ANIMATIONS ===================== */
+.fade-in{animation:fadeIn .5s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}
+.d4{animation-delay:.2s}.d5{animation-delay:.25s}.d6{animation-delay:.3s}
+.d7{animation-delay:.35s}.d8{animation-delay:.4s}
+
+/* ===================== FOOTER ===================== */
+.foot{
+  text-align:center;padding:20px 48px;
+  font-size:10px;color:var(--light);letter-spacing:.5px;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media(max-width:1024px){
+  .masthead,.filter-strip,.chips-bar{padding:0 20px}
+  .container{padding:20px}
+  .kpi-section{flex-direction:column;gap:14px}
+  .kpi-group-wide{flex:1}
+  .grid{grid-template-columns:1fr}
+}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-thumb{background:#ddd;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+<div class="masthead-inner">
+  <div class="masthead-left">
+    <svg class="logo" viewBox="0 0 36 34" fill="none"><path d="M13.9 0H0V33.5L13.9 0Z" fill="#E60012"/><path d="M22.1 0H36V33.5L22.1 0Z" fill="#E60012"/><path d="M18 11.8L26.1 33.5H21.2L18.8 27H12.4L18 11.8Z" fill="#E60012"/></svg>
+    <div>
+      <div class="masthead-title">Proactive Sourcing</div>
+      <div class="masthead-sub">APJ Employee Experience &middot; FY26</div>
+    </div>
+  </div>
+  <div class="masthead-right">
+    <div class="meta-pill okr-green" id="okrPill" title="Click to change OKR status">
+      <span class="okr-dot"></span><strong>OKR</strong>&ensp;15% of overall hires
+      <div class="okr-menu" id="okrMenu">
+        <div class="okr-opt selected" data-color="green"><span class="okr-dot" style="background:#22c55e"></span>On Track</div>
+        <div class="okr-opt" data-color="amber"><span class="okr-dot" style="background:#f59e0b"></span>At Risk</div>
+        <div class="okr-opt" data-color="red"><span class="okr-dot" style="background:#E60012"></span>Needs Focus</div>
+      </div>
+    </div>
+    <span class="last-saved" id="lastSaved" style="display:none"><span class="dot"></span><span id="lastSavedText"></span></span>
+    <button class="filter-toggle" id="filterToggle" title="Toggle filters">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Filters
+    </button>
+    <div class="upload-trigger" id="dropZone" title="Upload new .xlsx to refresh data">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3-3 3 3M3 12h10"/></svg>
+      <span id="uploadLabel">Upload .xlsx</span>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+  </div>
+</div>
+</header>
+
+<!-- COLLAPSIBLE FILTER STRIP -->
+<div class="filter-strip" id="filterStrip">
+<div class="filter-strip-inner">
+  <span class="flbl" id="lbl-status">Status</span>
+  <button class="fb fb-src act" data-dim="status" data-val="all">All</button>
+  <button class="fb fb-src" data-dim="status" data-val="Filled">Filled</button>
+  <button class="fb fb-src" data-dim="status" data-val="Not Live">Not Live</button>
+  <button class="fb fb-src" data-dim="status" data-val="Live">Live</button>
+  <button class="fb fb-src" data-dim="status" data-val="Cancelled">Cancelled</button>
+  <div class="fdiv"></div>
+  <span class="flbl" id="lbl-workReq">Request</span>
+  <button class="fb fb-st" data-dim="workReq" data-val="Proactive Source">Proactive Source</button>
+  <button class="fb fb-st" data-dim="workReq" data-val="Talent Map">Talent Map</button>
+  <button class="fb fb-st" data-dim="workReq" data-val="Hold">Hold</button>
+  <div class="fdiv"></div>
+  <span class="flbl" id="lbl-tp">Partner</span>
+  <button class="fb fb-tp" data-dim="tp" data-val="Tara Groves">Tara G.</button>
+  <button class="fb fb-tp" data-dim="tp" data-val="Sarah Smith">Sarah S.</button>
+  <button class="fb fb-tp" data-dim="tp" data-val="Maddy Tarannum">Maddy T.</button>
+  <button class="fb fb-tp" data-dim="tp" data-val="Ben Richards">Ben R.</button>
+  <button class="fb fb-tp" data-dim="tp" data-val="Michael Papandreas">Michael P.</button>
+  <div class="fdiv"></div>
+  <span class="flbl" id="lbl-country">Region</span>
+  <button class="fb fb-co" data-dim="country" data-val="AU">Australia</button>
+  <button class="fb fb-co" data-dim="country" data-val="SG">Singapore</button>
+  <button class="fb fb-co" data-dim="country" data-val="KR">Korea</button>
+  <button class="fb fb-co" data-dim="country" data-val="OT">Other</button>
+  <div class="fdiv"></div>
+  <span class="flbl" id="lbl-reason">Reason</span>
+  <button class="fb fb-rs" data-dim="reason" data-val="New HC">New HC</button>
+  <button class="fb fb-rs" data-dim="reason" data-val="Internal Movement">Internal Move</button>
+  <button class="fb fb-rs" data-dim="reason" data-val="Performance">Performance</button>
+  <button class="fb fb-rs" data-dim="reason" data-val="Flight Risk">Flight Risk</button>
+  <div class="fdiv"></div>
+  <span class="flbl" id="lbl-month">Month</span>
+  <button class="fb fb-mo" data-dim="month" data-val="2025-05">May 25</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2025-07">Jul 25</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2025-08">Aug 25</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2025-11">Nov 25</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2025-12">Dec 25</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-01">Jan 26</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-02">Feb 26</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-03">Mar 26</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-04">Apr 26</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-05">May 26</button>
+  <button class="fb fb-mo" data-dim="month" data-val="2026-06">Jun 26</button>
+</div>
+</div>
+
+<!-- ACTIVE CHIPS -->
+<div class="chips-bar" id="afbar">
+<div class="chips-inner">
+  <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  <span class="chips-count" id="rcnt"></span>
+  <button class="chips-clear" id="clrBtn">Clear all</button>
+</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="container">
+
+<!-- KPI TILES -->
+<section class="kpi-section fade-in">
+  <div class="kpi-group">
+    <div class="kpi-topic kpi-topic-blue">Demand<span class="info-wrap"><span class="info-i">?</span><span class="info-tip">Non-live roles being proactively sourced — these are roles with a 75% probability of converting to a requisition within three months. Excludes filled, cancelled, and live roles.</span></span></div>
+    <div class="kpi-body">
+      <div class="kpi-tile" data-kpi="ps_active">
+        <div class="kpi-number num-blue" id="k-psa">10</div>
+        <div class="kpi-label">Roles Being Proactively<br>Pipelined</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-group">
+    <div class="kpi-topic kpi-topic-purple">Supply<span class="info-wrap"><span class="info-i">?</span><span class="info-tip">Candidates who have completed at least two qualification stages across non-live requisitions only. Excludes filled, cancelled, and live roles.</span></span></div>
+    <div class="kpi-body">
+      <div class="kpi-tile" data-kpi="pipeline">
+        <div class="kpi-number num-purple" id="k-pip">11</div>
+        <div class="kpi-label">Candidates Pipelined</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-group">
+    <div class="kpi-topic kpi-topic-amber">Coverage<span class="info-wrap"><span class="info-i">?</span><span class="info-tip">Supply divided by Demand — the ratio of pipelined candidates to non-live roles being proactively sourced. A higher ratio indicates stronger candidate coverage against anticipated demand. Roles with three or more candidates added to bench are considered fully covered.</span></span></div>
+    <div class="kpi-body">
+      <div class="kpi-tile" data-kpi="coverage">
+        <div class="kpi-number num-amber" id="k-cov">1.10</div>
+        <div class="kpi-label">Qualified Candidate Per Role</div>
+        <div class="kpi-covered" id="k-cov-sub">0 roles fully covered</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-group-wide">
+    <div class="kpi-topic kpi-topic-green">Impact<span class="info-wrap"><span class="info-i">?</span><span class="info-tip">Total roles filled through the Proactive Sourcing programme to date, alongside the average time to offer acceptance — a measure of how effectively pre-identified talent converts to hires.</span></span></div>
+    <div class="kpi-body kpi-body-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="kpi-tile" data-kpi="Live">
+        <div class="kpi-number num-green" id="k-live">5</div>
+        <div class="kpi-label">Live Roles</div>
+      </div>
+      <div class="kpi-tile" data-kpi="ttoa">
+        <div class="kpi-number num-teal" id="k-ttoa">34</div>
+        <div class="kpi-label">TTOA (days)</div>
+      </div>
+      <div class="kpi-tile" data-kpi="Filled">
+        <div class="kpi-number num-green" id="k-fil">21</div>
+        <div class="kpi-label">Total Filled</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TREND -->
+<div class="grid" style="margin-bottom:20px">
+<div class="card grid-full fade-in d1">
+  <div class="card-head"><div class="card-title">Sourcing Request Trend</div><div class="card-tag">Timeline</div></div>
+  <div class="card-body"><div class="chart-area-trend"><canvas id="trendChart"></canvas></div></div>
+</div>
+</div>
+
+<!-- CHARTS ROW 1 -->
+<div class="grid" style="margin-bottom:20px">
+  <div class="card fade-in d2">
+    <div class="card-head"><div class="card-title">Status Overview</div><div class="card-tag">Distribution</div></div>
+    <div class="card-body"><div class="chart-area"><canvas id="statusChart"></canvas></div></div>
+  </div>
+  <div class="card fade-in d3">
+    <div class="card-head"><div class="card-title">Reason for Request</div><div class="card-tag">Drivers</div></div>
+    <div class="card-body"><div class="chart-area"><canvas id="reasonChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 2 -->
+<div class="grid" style="margin-bottom:20px">
+  <div class="card fade-in d4">
+    <div class="card-head"><div class="card-title">Source of Fill</div><div class="card-tag">Outcomes</div></div>
+    <div class="card-body"><div class="chart-area"><canvas id="sourceChart"></canvas></div></div>
+  </div>
+  <div class="card fade-in d5">
+    <div class="card-head"><div class="card-title">Workload</div><div class="card-tag">By Partner</div></div>
+    <div class="card-body"><div class="chart-area"><canvas id="tpChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 3 -->
+<div class="grid" style="margin-bottom:20px">
+  <div class="card fade-in d6">
+    <div class="card-head"><div class="card-title">Region Distribution</div><div class="card-tag">Geography</div></div>
+    <div class="card-body"><div class="chart-area-sm"><canvas id="countryChart"></canvas></div></div>
+  </div>
+  <div class="card fade-in d7">
+    <div class="card-head"><div class="card-title">Time to Offer Accepted</div><div class="card-tag">Speed</div></div>
+    <div class="card-body" style="padding-top:14px"><div id="ttoaBars"></div></div>
+  </div>
+</div>
+
+<!-- TABLE -->
+<div class="card grid-full fade-in d8">
+  <div class="card-head">
+    <div class="card-title">Pipeline Detail</div>
+    <div class="card-tag" id="rowCntTag">42 Roles</div>
+  </div>
+  <div class="card-body" style="overflow-x:auto;max-height:480px;overflow-y:auto">
+    <table class="tbl" id="tbl">
+    <thead><tr>
+      <th data-col="status">Status<span class="sa"></span></th>
+      <th data-col="jobTitle">Role<span class="sa"></span></th>
+      <th data-col="dateReq">Date Requested<span class="sa"></span></th>
+      <th data-col="level">Level<span class="sa"></span></th>
+      <th data-col="roleType">Type<span class="sa"></span></th>
+      <th data-col="country">Location<span class="sa"></span></th>
+      <th data-col="bu">BU<span class="sa"></span></th>
+      <th data-col="tp">Partner<span class="sa"></span></th>
+      <th data-col="reason">Reason<span class="sa"></span></th>
+      <th data-col="ttoa">TTOA<span class="sa"></span></th>
+      <th data-col="bench">Bench<span class="sa"></span></th>
+      <th data-col="filledPreId">Pre-ID<span class="sa"></span></th>
+      <th data-col="sourceOfFill">Fill Source<span class="sa"></span></th>
+    </tr></thead>
+    <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer class="foot">
+  Adobe Confidential &middot; APJ Employee Experience &middot; Proactive Sourcing FY26
+</footer>
+
+<script>
+// ===== DATA =====
+let DATA=[
+{status:"Filled",workReq:"Talent Map",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Technical Account Manager (AEM)",level:"P30/40",roleType:"Other",country:"Sydney",bu:"ACS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:0,reqNum:"R163293",benchFinal:0,filledPreId:"yes",notFilledReason:"Filled by internal",ttoa:8,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Talent Map",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Technical Account Manager (AEP)",level:"P30/40",roleType:"Other",country:"Australia",bu:"ACS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:0,reqNum:"R163299",benchFinal:0,filledPreId:"no",notFilledReason:"Filled by internal",ttoa:8,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"Oli Stone",jobTitle:"Strategic Pursuit - Sales Strategy  & Program Manager",level:"P50",roleType:"Other",country:"Sydney",bu:"DX",hrbp:"Hasham Muhammed",reason:"Performance concerns",bench:3,reqNum:"R160976",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:28,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Account Executive - Retail / FSI",level:"P40",roleType:"Hot",country:"Thailand",bu:"DX",hrbp:"Matthew Jurado",reason:"Performance concerns",bench:3,reqNum:"R158340",benchFinal:2,filledPreId:"yes",notFilledReason:"Change of scope",ttoa:151,sourceOfFill:"Proactive Source",region:"OT"},
+{status:"Filled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"ACS Account Executive",level:"P40",roleType:"Other",country:"Australia",bu:"PS",hrbp:"Emily Wren-Pattison",reason:"Internal Movement",bench:0,reqNum:"R162784",benchFinal:1,filledPreId:"no",notFilledReason:"Change of scope",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Solution CSM Manager",level:"M40",roleType:"Leader",country:"Sydney",bu:"CSE",hrbp:"Emily Wren-Pattison",reason:"Internal Movement",bench:2,reqNum:"R163569",benchFinal:2,filledPreId:"yes",notFilledReason:"",ttoa:55,sourceOfFill:"Referral",region:"AU"},
+{status:"Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Solution Architect",level:"P40",roleType:"Other",country:"Korea",bu:"ACS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:1,reqNum:"R167691",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"KR"},
+{status:"Cancelled",workReq:"Hold",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Content Solution Consultant",level:"TBC",roleType:"Other",country:"Singapore",bu:"DX",hrbp:"Matthew Jurado",reason:"Performance",bench:2,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"Oli Stone",jobTitle:"Solution Account Manager",level:"P20",roleType:"Others",country:"Sydney",bu:"",hrbp:"Nidhi Chopra",reason:"Performance",bench:1,reqNum:"R163808",benchFinal:1,filledPreId:"yes",notFilledReason:"",ttoa:36,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Value Advisor",level:"P40",roleType:"CSM",country:"Sydney",bu:"CSE",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:1,reqNum:"R164522",benchFinal:1,filledPreId:"yes",notFilledReason:"",ttoa:28,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"ISR - DMe",level:"P40",roleType:"Other",country:"Sydney",bu:"DMe",hrbp:"Nidhi Chopra",reason:"Internal Movement",bench:1,reqNum:"R164409",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:14,sourceOfFill:"Internal",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"Oli Stone",jobTitle:"Greefield Sales Leader",level:"M40",roleType:"FLM",country:"Sydney",bu:"DX",hrbp:"Nidhi Chopra",reason:"Internal Movement",bench:3,reqNum:"164197",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:40,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Program Manager",level:"P40",roleType:"Other",country:"Sydney",bu:"Sales Ops",hrbp:"Hasham Muhammed",reason:"New HC",bench:1,reqNum:"165476",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:9,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Program Manager Lead",level:"P40",roleType:"Sales Ops",country:"Sydney",bu:"Sales Ops",hrbp:"Hasham Muhammed",reason:"New HC",bench:1,reqNum:"R164357",benchFinal:0,filledPreId:"no",notFilledReason:"Candidates no longer interested",ttoa:32,sourceOfFill:"Referral",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"BDR",level:"S30",roleType:"Marketing",country:"Sydney",bu:"BDR",hrbp:"Hasham Muhammed",reason:"Internal Movement",bench:1,reqNum:"R164115",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:20,sourceOfFill:"Internal",region:"AU"},
+{status:"Live",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Enterprise Architect",level:"",roleType:"Other",country:"Sydney",bu:"DX",hrbp:"",reason:"",bench:1,reqNum:"R167514",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Cancelled",workReq:"Hold",tp:"Tara Groves",sp:"",jobTitle:"Specialist (JV)",level:"",roleType:"Specialist",country:"Sydney",bu:"DX",hrbp:"Nidhi Chopra",reason:"Internal Movement",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"BDR Program Manager & DMe Leader – APAC.",level:"P40",roleType:"Marketing",country:"Sydney",bu:"DX & Dme",hrbp:"Hasham Muhammed",reason:"New HC",bench:1,reqNum:"R164202",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:12,sourceOfFill:"Internal",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Product Specialist - GenStudio",level:"P40",roleType:"Marketing",country:"Sydney",bu:"DX",hrbp:"Nidhi Chopra",reason:"",bench:1,reqNum:"R164980",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"BDR - Rover x 2",level:"P20",roleType:"Marketing",country:"Australia",bu:"Marketing",hrbp:"Hasham Muhammed",reason:"New HC",bench:0,reqNum:"R166272",benchFinal:0,filledPreId:"no",notFilledReason:"Candidates no longer interested",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Marketing Events",level:"P40",roleType:"Marketing",country:"Sydney",bu:"Marketing",hrbp:"Hasham Muhammed",reason:"Flight Risk(ie. egagement)",bench:2,reqNum:"R165238",benchFinal:0,filledPreId:"no",notFilledReason:"Change of scope",ttoa:49,sourceOfFill:"Referral",region:"AU"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Malaysia CXO Account Executive (Evergreen)",level:"P40/P50",roleType:"AE",country:"Singapore",bu:"DX",hrbp:"Matthew Jurado",reason:"Evergreen",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Singapore CXO Account Executive (Evergreen)",level:"P40/P50",roleType:"AE",country:"Singapore",bu:"DX",hrbp:"Matthew Jurado",reason:"Evergreen",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Growth CXO Account Executive (Evergreen):  KAL, PH, Viet, Indo",level:"P50",roleType:"AE",country:"Singapore",bu:"",hrbp:"Matthew Jurado",reason:"Evergreen",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Filled",workReq:"Talent Map",tp:"Ben Richards",sp:"Vincent Chi",jobTitle:"Senior Director, Sales - ACS JAPAC",level:"M70",roleType:"Leader",country:"Australia/Singapore",bu:"PS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:0,reqNum:"R164729",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Michael Papandreas",sp:"",jobTitle:"Strategic Develoment Manager - Creative Professionals",level:"P40",roleType:"Hot",country:"Australia",bu:"",hrbp:"Cathy Mattiussi",reason:"Internal Movement",bench:1,reqNum:"R164882",benchFinal:1,filledPreId:"yes",notFilledReason:"",ttoa:40,sourceOfFill:"Proactive Source",region:"AU"},
+{status:"Cancelled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Technical Account Manager",level:"P40",roleType:"Other",country:"Singapore",bu:"CSE",hrbp:"Emily Wren-Pattison",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Cancelled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"Hybrid Customer Success/Technical Account Manager",level:"P40",roleType:"Hot",country:"Hong Kong",bu:"CSE",hrbp:"Emily Wren-Pattison",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"OT"},
+{status:"Cancelled",workReq:"Proactive Source",tp:"Sarah Smith",sp:"",jobTitle:"ACS Account Executive",level:"P40",roleType:"Hot",country:"Singapore",bu:"PS",hrbp:"Emily Wren-Pattison",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Business Productivity Sales Specialist",level:"P40",roleType:"",country:"Sydney",bu:"C&P",hrbp:"Cathy Mattiussi",reason:"New HC",bench:1,reqNum:"R165329",benchFinal:0,filledPreId:"yes",notFilledReason:"",ttoa:7,sourceOfFill:"Internal",region:"AU"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"",jobTitle:"Delivery Manager",level:"M40",roleType:"Hot",country:"Singapore",bu:"PS",hrbp:"Emily Wren-Pattison",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"Oli Stone",jobTitle:"ACS Sales Director, SEA",level:"M60",roleType:"Leader",country:"Singapore",bu:"PS",hrbp:"Emily Wren-Pattison",reason:"Performance concerns",bench:0,reqNum:"R169589",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Cancelled",workReq:"Hold",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Sales Enablement Manager",level:"P40",roleType:"",country:"Singapore",bu:"",hrbp:"",reason:"Flight Risk(ie. egagement)",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Live",workReq:"Proactive Source",tp:"Tara Groves",sp:"Emma Lyall",jobTitle:"Director, Partner Sales",level:"M60",roleType:"Leader",country:"Sydney",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Performance concerns",bench:3,reqNum:"R168396",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Live",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"Account Executive - Greenfield",level:"P40",roleType:"Hot",country:"Sydney/Melbourne",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Performance concerns",bench:3,reqNum:"R169239",benchFinal:3,filledPreId:"no",notFilledReason:"Candidates no longer interested",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Filled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"BDR",level:"M20",roleType:"",country:"Sydney",bu:"CXO",hrbp:"Hasham Muhammed",reason:"Internal Movement",bench:1,reqNum:"R165878",benchFinal:4,filledPreId:"no",notFilledReason:"Filled by internal",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"BDR",level:"S30",roleType:"",country:"Sydney",bu:"CXO",hrbp:"Hasham Muhammed",reason:"Internal Movement",bench:2,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"",jobTitle:"Business Consultant - Commerce x2",level:"P40",roleType:"Other",country:"Korea",bu:"APS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"KR"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"",jobTitle:"Technical Consultant - Commerce x2",level:"P30",roleType:"Other",country:"Korea",bu:"APS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"KR"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Sarah Smith",sp:"",jobTitle:"AI Innovation Consultant",level:"P40",roleType:"Other",country:"Sydney/Melbourne",bu:"APS",hrbp:"Emily Wren-Pattison",reason:"New HC",bench:2,reqNum:"",benchFinal:2,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Cancelled",workReq:"Proactive Source",tp:"Tara Groves",sp:"",jobTitle:"SAM",level:"P40",roleType:"",country:"Sydney/Melbourne",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Flight Risk(ie. egagement)",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Talent Map",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"FLM x2",level:"M40 to M50",roleType:"",country:"Singapore",bu:"",hrbp:"Matthew Jurado",reason:"Flight Risk(ie. egagement)",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+{status:"Not Live",workReq:"Talent Map",tp:"Tara Groves",sp:"Clarissa Ching & Tamara Viner",jobTitle:"Solution Consultant",level:"P40",roleType:"",country:"Sydney",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Talent Map",tp:"Emma Lyall",sp:"",jobTitle:"Legal Counsel",level:"P50",roleType:"",country:"Korea",bu:"Legal",hrbp:"Cathy Mattiussi/Dawun Hong",reason:"",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"KR"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Tara Groves",sp:"Tamara Viner",jobTitle:"AE - FSI",level:"P40",roleType:"Hot",country:"Sydney",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Performance concerns",bench:3,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Cancelled",workReq:"Talent Map",tp:"Tara Groves",sp:"Tamara Viner",jobTitle:"AE - Install Base",level:"",roleType:"Hot",country:"Sydney/Melbourne",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Performance concerns",bench:0,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Talent Map",tp:"Tara Groves",sp:"",jobTitle:"SAM",level:"P40",roleType:"",country:"Sydney/Melbourne",bu:"CXO",hrbp:"Nidhi Chopra",reason:"Flight Risk(ie. egagement)",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"AU"},
+{status:"Not Live",workReq:"Proactive Source",tp:"Maddy Tarannum",sp:"Clarissa Ching",jobTitle:"Growth CXO Account Executive (Evergreen):  TH",level:"P50",roleType:"AE",country:"Singapore",bu:"",hrbp:"Matthew Jurado",reason:"Evergreen",bench:1,reqNum:"",benchFinal:0,filledPreId:"",notFilledReason:"",ttoa:null,sourceOfFill:"",region:"SG"},
+];
+
+const DATES=["2025-11", "2025-11", "2025-08", "2025-07", "2025-05", "2025-11", "2026-01", "2025-11", "2025-12", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-05", "2026-05", "2026-05", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-01", "2026-02", "2026-02", "2026-03", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-05", "2026-05", "2026-05", "2026-05", "2026-06", "2026-06", "2026-05"];
+DATA.forEach((d,i)=>{d.dateReq=DATES[i]||''});
+const CDDS=[0, 0, 3, 3, 0, 2, 1, 2, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 3, 3, 1, 2, 0, 0, 2, 1, 0, 0, 0, 3, 0, 1, 1];
+DATA.forEach((d,i)=>{d.cdds=CDDS[i]||0;});
+
+
+// ===== EXCEL PARSER =====
+function countryToRegion(c){if(!c)return'OT';const l=c.toLowerCase();if(l.includes('sydney')||l.includes('australia')||l.includes('melbourne'))return'AU';if(l.includes('singapore'))return'SG';if(l.includes('korea'))return'KR';return'OT';}
+function parseExcel(ab){const wb=XLSX.read(ab,{type:'array',cellDates:true});const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('tracker'))||wb.SheetNames[0];const ws=wb.Sheets[sn];const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});let hi=0;for(let i=0;i<Math.min(10,raw.length);i++){const row=raw[i].map(v=>String(v).trim().toLowerCase());if(row.includes('req status')||row.includes('job title')){hi=i;break;}}const hd=raw[hi].map(v=>String(v).trim());const col=n=>hd.findIndex(h=>h.toLowerCase().includes(n.toLowerCase()));const ci={status:col('Req Status'),workReq:col('Work Request'),dateReq:col('Date Req'),tp:col('Talent Partner'),sp:col('Sourcing Partner'),jobTitle:col('Job title'),level:col('Role Level'),roleType:col('Role Type'),country:col('Country'),bu:col('BU'),hrbp:col('HRBP'),reason:col('Reason for request'),bench:col('cdds added to Bench'),reqNum:col('Requisition Number'),benchFinal:col('Bench candidates at final'),filledPreId:col('fill with pre-identified'),notFilledReason:col('If not'),ttoa:col('TTOA'),sourceOfFill:col('Source of fill')};const cc=[];hd.forEach((h,i)=>{if(h.toLowerCase().startsWith('cdd #'))cc.push(i);});const nd=[];for(let i=hi+1;i<raw.length;i++){const r=raw[i];const st=String(r[ci.status]||'').trim();if(!st)continue;const co=String(r[ci.country]||'').trim();let cd=0;cc.forEach(c=>{if(r[c]&&String(r[c]).trim())cd++;});let dr='';const dv=r[ci.dateReq];if(dv instanceof Date)dr=dv.toISOString().slice(0,7);else if(typeof dv==='number'){const d=new Date((dv-25569)*86400000);dr=d.toISOString().slice(0,7);}let tt=null;const tv=r[ci.ttoa];if(tv!==''&&tv!=null&&!isNaN(Number(tv)))tt=Math.round(Number(tv));nd.push({status:st,workReq:String(r[ci.workReq]||'').trim(),tp:String(r[ci.tp]||'').trim(),sp:String(r[ci.sp]||'').trim(),jobTitle:String(r[ci.jobTitle]||'').trim(),level:String(r[ci.level]||'').trim(),roleType:String(r[ci.roleType]||'').trim(),country:co,bu:String(r[ci.bu]||'').trim(),hrbp:String(r[ci.hrbp]||'').trim(),reason:String(r[ci.reason]||'').trim(),bench:Number(r[ci.bench])||0,reqNum:String(r[ci.reqNum]||'').trim(),benchFinal:Number(r[ci.benchFinal])||0,filledPreId:String(r[ci.filledPreId]||'').trim().toLowerCase(),notFilledReason:String(r[ci.notFilledReason]||'').trim(),ttoa:tt,sourceOfFill:String(r[ci.sourceOfFill]||'').trim(),region:countryToRegion(co),dateReq:dr,cdds:cd});}return nd;}
+function loadNewData(d){DATA=d;rebuildDims();clearAll();}
+
+// ===== PERSISTENCE =====
+async function saveData(fileName){
+  try{
+    if(window.storage){
+      const meta={fileName:fileName||'manual',date:new Date().toISOString(),rows:DATA.length};
+      await window.storage.set('ps-dashboard-data',JSON.stringify(DATA),true);
+      await window.storage.set('ps-dashboard-meta',JSON.stringify(meta),true);
+      let history=[];
+      try{const h=await window.storage.get('ps-dashboard-history',true);if(h)history=JSON.parse(h.value);}catch(e){}
+      history.push(meta);
+      if(history.length>50)history=history.slice(-50);
+      await window.storage.set('ps-dashboard-history',JSON.stringify(history),true);
+      showSavedIndicator(meta);
+    }
+  }catch(e){}
+}
+
+async function loadSavedData(){
+  try{
+    if(window.storage){
+      let result=null,metaResult=null;
+      try{result=await window.storage.get('ps-dashboard-data',true);}catch(e){}
+      try{metaResult=await window.storage.get('ps-dashboard-meta',true);}catch(e){}
+      if(result&&result.value){
+        const saved=JSON.parse(result.value);
+        if(saved&&saved.length){
+          DATA=saved;
+          rebuildDims();
+          if(metaResult&&metaResult.value){
+            const meta=JSON.parse(metaResult.value);
+            showSavedIndicator(meta);
+            document.getElementById('uploadLabel').textContent=meta.fileName+' · Saved as default';
+            document.getElementById('dropZone').classList.add('loaded');
+          }
+          return true;
+        }
+      }
+    }
+  }catch(e){}
+  return false;
+}
+
+function showSavedIndicator(meta){
+  const el=document.getElementById('lastSaved');
+  const txt=document.getElementById('lastSavedText');
+  if(el&&txt&&meta){
+    const d=new Date(meta.date);
+    const fmt=d.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    txt.textContent=`Saved ${fmt} · ${meta.rows} rows`;
+    el.style.display='flex';
+  }
+}
+function rebuildDims(){ALL_ST.length=0;ALL_WR.length=0;ALL_TP.length=0;ALL_CO.length=0;ALL_RS.length=0;const s=new Set,w=new Set,t=new Set,c=new Set,r=new Set;DATA.forEach(d=>{if(d.status)s.add(d.status);if(d.workReq)w.add(d.workReq);if(d.tp)t.add(d.tp);if(d.region)c.add(d.region);if(d.reason){let v=d.reason;if(v.startsWith('Performance'))v='Performance';if(v.startsWith('Flight'))v='Flight Risk';r.add(v);}});s.forEach(v=>ALL_ST.push(v));w.forEach(v=>ALL_WR.push(v));t.forEach(v=>ALL_TP.push(v));c.forEach(v=>ALL_CO.push(v));r.forEach(v=>ALL_RS.push(v));}
+
+// Upload
+document.getElementById('dropZone').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0]);});
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--red)';dz.style.background='rgba(230,0,18,.05)';});
+dz.addEventListener('dragleave',()=>{dz.style.borderColor='';dz.style.background='';});
+dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';dz.style.background='';if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});
+function handleFile(f){if(!f.name.match(/\.xlsx?$/i)){alert('Please upload an .xlsx file');return;}const r=new FileReader();r.onload=e=>{try{const d=parseExcel(e.target.result);if(!d.length){alert('No data found.');return;}DATA=d;rebuildDims();clearAll();saveData(f.name);document.getElementById('uploadLabel').textContent=f.name+' · Saved as default';dz.classList.add('loaded');}catch(err){alert('Parse error: '+err.message);}};r.readAsArrayBuffer(f);}
+
+// ===== FILTER STATE =====
+let ALL_ST=["Filled","Not Live","Live","Cancelled"],ALL_WR=["Proactive Source","Talent Map","Hold"],ALL_TP=["Tara Groves","Sarah Smith","Maddy Tarannum","Ben Richards","Michael Papandreas"],ALL_CO=["AU","SG","KR","OT"],ALL_RS=["New HC","Internal Movement","Performance","Flight Risk"];
+const DIM_ALL={status:ALL_ST,workReq:ALL_WR,tp:ALL_TP,country:ALL_CO,reason:ALL_RS};
+const F={status:new Set,workReq:new Set,tp:new Set,country:new Set,reason:new Set,month:null};
+const ALL_MO=["2025-05","2025-07","2025-08","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06"];
+function mr(d,s){return s.has(d.region)}
+function mrsn(d,s){for(const v of s){if(v==='Performance'&&d.reason.startsWith('Performance'))return true;if(v==='Flight Risk'&&d.reason.startsWith('Flight'))return true;if(d.reason===v)return true;}return false;}
+function getF(){return DATA.filter(d=>{if(F.status.size>0&&!F.status.has(d.status))return false;if(F.workReq.size>0&&!F.workReq.has(d.workReq))return false;if(F.tp.size>0&&!F.tp.has(d.tp))return false;if(F.country.size>0&&!mr(d,F.country))return false;if(F.reason.size>0&&!mrsn(d,F.reason))return false;if(F.month&&d.dateReq!==F.month)return false;return true;});}
+function toggleFilter(dim,val){if(dim==='month'){F.month=F.month===val?null:val;syncUI();updateAll();return;}const s=F[dim];if(val==='all')s.clear();else if(s.has(val))s.delete(val);else s.add(val);if(DIM_ALL[dim]&&s.size>=DIM_ALL[dim].length)s.clear();syncUI();updateAll();}
+function removeChip(dim,val){if(dim==='month')F.month=null;else F[dim].delete(val);syncUI();updateAll();}
+function clearAll(){F.status.clear();F.workReq.clear();F.tp.clear();F.country.clear();F.reason.clear();F.month=null;syncUI();updateAll();}
+
+const DL={status:'Status',workReq:'Request',tp:'Partner',country:'Region',reason:'Reason',month:'Month'};
+const RN={AU:'Australia',SG:'Singapore',KR:'Korea',OT:'Other'};
+const MN={"2025-05":"May 25","2025-07":"Jul 25","2025-08":"Aug 25","2025-11":"Nov 25","2025-12":"Dec 25","2026-01":"Jan 26","2026-02":"Feb 26","2026-03":"Mar 26","2026-04":"Apr 26","2026-05":"May 26","2026-06":"Jun 26"};
+const CD={country:v=>RN[v]||v,month:v=>MN[v]||v};
+
+function syncUI(){
+  const bg={status:'.fb-src',workReq:'.fb-st',tp:'.fb-tp',country:'.fb-co',reason:'.fb-rs'};
+  Object.keys(bg).forEach(dim=>{document.querySelectorAll(bg[dim]).forEach(b=>{const v=b.dataset.val;if(v==='all')b.classList.toggle('act',F[dim].size===0);else b.classList.toggle('act',F[dim].has(v));});});
+  // Month buttons (single-select)
+  document.querySelectorAll('.fb-mo').forEach(b=>b.classList.toggle('act',b.dataset.val===F.month));
+  Object.keys(bg).forEach(dim=>{const el=document.getElementById('lbl-'+dim);if(el)el.textContent=F[dim].size>1?`${DL[dim]} (${F[dim].size})`:DL[dim];});
+  const any=F.status.size>0||F.workReq.size>0||F.tp.size>0||F.country.size>0||F.reason.size>0||F.month;
+  document.getElementById('afbar').classList.toggle('vis',any);
+  document.getElementById('filterToggle').classList.toggle('has-filters',any);
+  let ch='';['status','workReq','tp','country','reason'].forEach(dim=>{F[dim].forEach(val=>{const d=CD[dim]?CD[dim](val):val;const s=val.replace(/'/g,"\\'");ch+=`<div class="chip"><span class="chip-dim">${DL[dim]}:</span> ${d} <button class="chip-x" onclick="event.stopPropagation();removeChip('${dim}','${s}')">&times;</button></div>`;});});
+  if(F.month)ch+=`<div class="chip"><span class="chip-dim">Month:</span> ${MN[F.month]||F.month} <button class="chip-x" onclick="event.stopPropagation();removeChip('month','${F.month}')">&times;</button></div>`;
+  document.getElementById('chips').innerHTML=ch;
+  document.getElementById('rcnt').textContent=`${getF().length} of ${DATA.length} roles`;
+}
+
+// Button handlers
+document.getElementById('filterToggle').addEventListener('click',()=>document.getElementById('filterStrip').classList.toggle('open'));
+document.querySelectorAll('.fb[data-dim]').forEach(b=>{b.addEventListener('click',()=>toggleFilter(b.dataset.dim,b.dataset.val));});
+document.querySelectorAll('.kpi-tile').forEach(t=>{t.addEventListener('click',()=>{const k=t.dataset.kpi;if(k==='ttoa'||k==='pipeline'||k==='ps_active'||k==='coverage')F.status.clear();else if(k==='Filled'||k==='Live'){if(F.status.size===1&&F.status.has(k))F.status.clear();else{F.status.clear();F.status.add(k);}}syncUI();updateAll();});});
+document.getElementById('clrBtn').addEventListener('click',clearAll);
+
+// ===== CHARTS =====
+let sortCol=null,sortDir='asc';
+Chart.defaults.color='#8b8ba0';Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=11;
+const ttip={backgroundColor:'#fff',titleColor:'#1a1a2e',bodyColor:'#4a4a64',borderColor:'#eaeaf0',borderWidth:1,titleFont:{weight:'600',family:"'DM Sans'"},bodyFont:{size:12,family:"'DM Sans'"},padding:14,cornerRadius:10,boxShadow:'0 4px 12px rgba(0,0,0,.1)'};
+let trendChart,statusChart,reasonChart,sourceChart,tpChart,countryChart;
+const stCols={Filled:'#E60012','Not Live':'#A30020',Live:'#808080',Cancelled:'#CCCCCC'};
+
+function initCharts(){
+  trendChart=new Chart(document.getElementById('trendChart'),{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,onClick:(e,els)=>{if(els.length)toggleFilter('month',ALL_MO[els[0].index]);},plugins:{legend:{position:'right',labels:{boxWidth:8,padding:10,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:ttip},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},y:{stacked:true,grid:{color:'#f0f0f5'},beginAtZero:true,ticks:{stepSize:2}}}}});
+  statusChart=new Chart(document.getElementById('statusChart'),{type:'doughnut',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',onClick:(e,els)=>{if(els.length)toggleFilter('status',statusChart.data.labels[els[0].index]);},plugins:{legend:{position:'bottom',labels:{boxWidth:8,padding:14,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:ttip}}});
+  reasonChart=new Chart(document.getElementById('reasonChart'),{type:'pie',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,onClick:(e,els)=>{if(els.length){const l=reasonChart.data.labels[els[0].index];const m={'Performance concerns':'Performance',Performance:'Performance','Flight Risk(ie. egagement)':'Flight Risk'};toggleFilter('reason',m[l]||l);}},plugins:{legend:{position:'bottom',labels:{boxWidth:8,padding:14,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:ttip}}});
+  sourceChart=new Chart(document.getElementById('sourceChart'),{type:'doughnut',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:8,padding:14,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:ttip}}});
+  tpChart=new Chart(document.getElementById('tpChart'),{type:'bar',data:{labels:[],datasets:[]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,onClick:(e,els)=>{if(els.length)toggleFilter('tp',tpChart.data.labels[els[0].index]);},plugins:{legend:{display:false},tooltip:ttip},scales:{x:{grid:{color:'#f0f0f5'},beginAtZero:true},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  countryChart=new Chart(document.getElementById('countryChart'),{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,onClick:(e,els)=>{if(els.length){const rm={Sydney:'AU',Australia:'AU','Sydney/Melbourne':'AU','Australia/Singapore':'AU',Singapore:'SG',Korea:'KR',Thailand:'OT','Hong Kong':'OT'};toggleFilter('country',rm[countryChart.data.labels[els[0].index]]||'OT');}},plugins:{legend:{display:false},tooltip:ttip},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'#f0f0f5'},beginAtZero:true}}}});
+}
+
+function updateAll(){
+  const d=getF(),tot=d.length;
+  const sc={};d.forEach(r=>sc[r.status]=(sc[r.status]||0)+1);
+  const filled=sc['Filled']||0;
+  const ttoas=d.filter(r=>r.ttoa!==null).map(r=>r.ttoa);
+  const avgTtoa=ttoas.length?Math.round(ttoas.reduce((a,b)=>a+b,0)/ttoas.length):0;
+  const psActive=d.filter(r=>r.workReq==='Proactive Source'&&r.status==='Not Live').length;
+  const pipCdds=d.filter(r=>r.status==='Not Live').reduce((s,r)=>s+r.cdds,0);
+  const pipRoles=d.filter(r=>r.status==='Not Live'&&r.cdds>0).length;
+
+  document.getElementById('k-psa').textContent=psActive;
+  document.getElementById('k-pip').textContent=pipCdds;
+  // Coverage: Supply / Demand (Not Live roles only)
+  const covRatio=psActive?pipCdds/psActive:0;
+  const activeRoles=d.filter(r=>r.status==='Not Live');
+  const fullyCovered=activeRoles.filter(r=>r.bench>=3).length;
+  document.getElementById('k-cov').textContent=covRatio?covRatio.toFixed(2):'0';
+  document.getElementById('k-cov-sub').textContent=fullyCovered+` role${fullyCovered!==1?'s':''} fully covered`;
+  document.getElementById('k-ttoa').textContent=avgTtoa||'—';
+  document.getElementById('k-fil').textContent=filled;
+  document.getElementById('k-live').textContent=sc['Live']||0;
+
+  // Trend
+  const tM=ALL_MO,tL=MN;
+  const tD=DATA.filter(r=>{if(r.workReq!=='Proactive Source')return false;if(F.status.size>0&&!F.status.has(r.status))return false;if(F.workReq.size>0&&!F.workReq.has(r.workReq))return false;if(F.tp.size>0&&!F.tp.has(r.tp))return false;if(F.country.size>0&&!mr(r,F.country))return false;if(F.reason.size>0&&!mrsn(r,F.reason))return false;return true;});
+  const nc=tD.filter(r=>!r.dateReq).length;
+  trendChart.data.labels=tM.map(m=>tL[m]);
+  trendChart.data.datasets=Object.keys(stCols).map(st=>({label:st,data:tM.map(m=>tD.filter(r=>r.dateReq===m&&r.status===st).length),backgroundColor:stCols[st],borderRadius:4,barPercentage:.65}));
+  if(F.month){const mi=tM.indexOf(F.month);trendChart.data.datasets.forEach(ds=>{const bg=[];for(let i=0;i<tM.length;i++)bg.push(i===mi?ds.backgroundColor:ds.backgroundColor+'33');ds.backgroundColor=bg;});}
+  trendChart.options.plugins.title={display:nc>0,text:`${nc} role${nc>1?'s':''} without date`,color:'#8b8ba0',font:{size:10,weight:'400'},padding:{bottom:0}};
+  trendChart.update('none');
+
+  // Status
+  const stC={};d.forEach(r=>stC[r.status]=(stC[r.status]||0)+1);
+  statusChart.data.labels=Object.keys(stC);statusChart.data.datasets=[{data:Object.values(stC),backgroundColor:Object.keys(stC).map(k=>stCols[k]||'#999'),borderWidth:0,hoverOffset:6}];statusChart.update('none');
+
+  // Reason
+  const rsC={};d.filter(r=>r.reason).forEach(r=>{let k=r.reason;if(k.startsWith('Performance'))k='Performance';if(k.startsWith('Flight'))k='Flight Risk';rsC[k]=(rsC[k]||0)+1;});
+  const rsS=Object.entries(rsC).sort((a,b)=>b[1]-a[1]);
+  const rsCols=['#E60012','#A30020','#808080','#363636','#CCCCCC','#F0ADAD'];
+  reasonChart.data.labels=rsS.map(r=>r[0]);reasonChart.data.datasets=[{data:rsS.map(r=>r[1]),backgroundColor:rsCols.slice(0,rsS.length),borderWidth:0,hoverOffset:6}];reasonChart.update('none');
+
+  // Source
+  const sfC={};d.filter(r=>r.sourceOfFill).forEach(r=>sfC[r.sourceOfFill]=(sfC[r.sourceOfFill]||0)+1);
+  const sfCols=['#E60012','#A30020','#808080','#363636'];
+  if(Object.keys(sfC).length){sourceChart.data.labels=Object.keys(sfC);sourceChart.data.datasets=[{data:Object.values(sfC),backgroundColor:sfCols,borderWidth:0,hoverOffset:6}];}else{sourceChart.data.labels=['No data'];sourceChart.data.datasets=[{data:[1],backgroundColor:['#eaeaf0'],borderWidth:0}];}
+  sourceChart.update('none');
+
+  // TP
+  const tpC={};d.forEach(r=>tpC[r.tp]=(tpC[r.tp]||0)+1);const tpS=Object.entries(tpC).sort((a,b)=>b[1]-a[1]);
+  tpChart.data.labels=tpS.map(t=>t[0]);tpChart.data.datasets=[{data:tpS.map(t=>t[1]),backgroundColor:['#E60012','#A30020','#808080','#363636','#CCCCCC'],borderRadius:6,barPercentage:.5}];tpChart.update('none');
+
+  // Country
+  const coC={};d.forEach(r=>coC[r.country]=(coC[r.country]||0)+1);const coS=Object.entries(coC).sort((a,b)=>b[1]-a[1]);
+  countryChart.data.labels=coS.map(c=>c[0]);countryChart.data.datasets=[{data:coS.map(c=>c[1]),backgroundColor:'#E60012',borderRadius:6,barPercentage:.55}];countryChart.update('none');
+
+  // TTOA
+  const ranges=[{l:'0–14',min:0,max:14},{l:'15–30',min:15,max:30},{l:'31–50',min:31,max:50},{l:'51+',min:51,max:999}];
+  const tCols=['#E60012','#A30020','#808080','#363636'];
+  let tH='';
+  if(!ttoas.length)tH='<div class="empty">No TTOA data</div>';
+  else{const mx=Math.max(...ranges.map(r=>ttoas.filter(t=>t>=r.min&&t<=r.max).length),1);
+  ranges.forEach((r,i)=>{const c=ttoas.filter(t=>t>=r.min&&t<=r.max).length;const w=Math.max(c/mx*100,6);tH+=`<div class="hbar"><div class="hbar-label"><span>${r.l} days</span><span style="font-weight:700;color:var(--ink)">${c}</span></div><div class="hbar-track"><div class="hbar-fill" style="width:${w}%;background:${tCols[i]}">${c}</div></div></div>`;});}
+  document.getElementById('ttoaBars').innerHTML=tH;
+
+  // Table
+  document.getElementById('rowCntTag').textContent=`${d.length} Roles`;
+  const stB=s=>s==='Filled'?'sb-f':s==='Not Live'?'sb-nl':s==='Live'?'sb-l':'sb-c';
+  const sorted=[...d];
+  if(sortCol){sorted.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==='ttoa'||sortCol==='bench'){va=va!==null?va:99999;vb=vb!==null?vb:99999;return sortDir==='asc'?va-vb:vb-va;}va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();return va<vb?(sortDir==='asc'?-1:1):va>vb?(sortDir==='asc'?1:-1):0;});}
+  const fmtDate=d=>{if(!d)return'—';const[y,m]=d.split('-');const mn=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return(mn[parseInt(m)]||m)+' '+y;};
+  let tb='';sorted.forEach(r=>{tb+=`<tr><td><span class="sb ${stB(r.status)}">${r.status}</span></td><td class="t-title">${r.jobTitle}</td><td style="white-space:nowrap">${fmtDate(r.dateReq)}</td><td>${r.level}</td><td>${r.roleType||'—'}</td><td>${r.country}</td><td>${r.bu||'—'}</td><td>${r.tp}</td><td>${r.reason||'—'}</td><td style="font-weight:600;color:${r.ttoa?'var(--ink)':'var(--light)'}">${r.ttoa!==null?r.ttoa+'d':'—'}</td><td style="font-weight:600;color:${r.bench?'var(--ink)':'var(--light)'}">${r.bench||'—'}</td><td>${r.filledPreId==='yes'?'<span style="color:var(--ink)">Yes</span>':r.filledPreId==='no'?'<span style="color:var(--red)">No</span>':'—'}</td><td>${r.sourceOfFill||'—'}</td></tr>`;});
+  document.querySelector('#tbl tbody').innerHTML=tb;
+  document.querySelectorAll('#tbl th[data-col]').forEach(th=>{th.classList.remove('sasc','sdsc');if(th.dataset.col===sortCol)th.classList.add(sortDir==='asc'?'sasc':'sdsc');});
+}
+
+document.querySelectorAll('#tbl th[data-col]').forEach(th=>{th.addEventListener('click',()=>{const c=th.dataset.col;if(sortCol===c)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=c;sortDir='asc';}updateAll();});});
+
+initCharts();
+
+// ===== OKR STATUS =====
+const okrPill=document.getElementById('okrPill');
+const okrMenu=document.getElementById('okrMenu');
+okrPill.addEventListener('click',e=>{e.stopPropagation();okrMenu.classList.toggle('open');});
+document.addEventListener('click',()=>okrMenu.classList.remove('open'));
+okrMenu.addEventListener('click',e=>e.stopPropagation());
+
+document.querySelectorAll('.okr-opt').forEach(opt=>{
+  opt.addEventListener('click',async()=>{
+    const c=opt.dataset.color;
+    okrPill.classList.remove('okr-green','okr-amber','okr-red');
+    okrPill.classList.add('okr-'+c);
+    document.querySelectorAll('.okr-opt').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected');
+    okrMenu.classList.remove('open');
+    try{if(window.storage)await window.storage.set('ps-okr-status',c,true);}catch(e){}
+  });
+});
+
+// Load saved OKR status
+(async()=>{
+  try{
+    if(window.storage){
+      let r=null;
+      try{r=await window.storage.get('ps-okr-status',true);}catch(e){}
+      if(r&&r.value){
+        const c=r.value;
+        okrPill.classList.remove('okr-green','okr-amber','okr-red');
+        okrPill.classList.add('okr-'+c);
+        document.querySelectorAll('.okr-opt').forEach(o=>{
+          o.classList.toggle('selected',o.dataset.color===c);
+        });
+      }
+    }
+  }catch(e){}
+})();
+
+// Load saved data if available, otherwise use hardcoded default
+(async()=>{
+  const loaded=await loadSavedData();
+  if(!loaded){
+    document.getElementById('uploadLabel').textContent='Default data · Upload to update';
+  }
+  syncUI();updateAll();
+})();
+</script>
+</body>
+</html>
